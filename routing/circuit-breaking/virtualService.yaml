@@ -25,9 +25,9 @@ spec:
   trafficPolicy:
     connectionPool:
       tcp:
-        maxConnections: 100
+        maxConnections: 50
       http:
-        http1MaxPendingRequests: 50
+        http1MaxPendingRequests: 10
         maxRequestsPerConnection: 10
     outlierDetection:
       consecutiveErrors: 3
