@@ -25,3 +25,25 @@ kubectl get pods -n emojivoto
 ```
 kubectl label namespace emojivoto istio.io/usewaypoint=auto
 ```
+
+```
+
+Waypoint for Emojivoto
+```
+kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: emoji-waypoint
+  namespace: emojivoto
+  annotations:
+    waypoint.istio.io/for: service
+spec:
+  gatewayClassName: gloo-gateway
+  listeners:
+  - name: mesh
+    port: 15008 
+    protocol: HBONE
+EOF
+```
+```
