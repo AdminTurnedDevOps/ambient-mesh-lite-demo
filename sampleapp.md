@@ -26,8 +26,6 @@ kubectl get pods -n emojivoto
 kubectl label namespace emojivoto istio.io/usewaypoint=auto
 ```
 
-```
-
 Waypoint for Emojivoto
 ```
 kubectl apply -f - <<EOF
@@ -45,5 +43,4 @@ spec:
     port: 15008 
     protocol: HBONE
 EOF
-```
 ```
