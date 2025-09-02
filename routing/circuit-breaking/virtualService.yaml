@@ -1,11 +1,11 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: emoji-svc
+  name: web-svc
   namespace: emojivoto
 spec:
   hosts:
-  - emoji-svc
+  - web-svc
   http:
   - timeout: 3s
     retries:
@@ -13,15 +13,15 @@ spec:
       perTryTimeout: 1s
     route:
     - destination:
-        host: emoji-svc
+        host: web-svc
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
-  name: emoji-svc
+  name: web-svc
   namespace: emojivoto
 spec:
-  host: emoji-svc
+  host: web-svc
   trafficPolicy:
     connectionPool:
       tcp:
