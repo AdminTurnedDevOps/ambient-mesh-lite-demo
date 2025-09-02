@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: emoji-svc
+  namespace: emojivoto
+spec:
+  hosts:
+  - emoji-svc
+  http:
+  - timeout: 3s
+    retries:
+      attempts: 3
+      perTryTimeout: 1s
+    route:
+    - destination:
+        host: emoji-svc

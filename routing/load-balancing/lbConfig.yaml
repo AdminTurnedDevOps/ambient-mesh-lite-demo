@@ -1,0 +1,39 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: web-svc
+  namespace: emojivoto
+spec:
+  hosts:
+  - web-svc
+  http:
+  - match:
+    - headers:
+        user-id:
+          present: true
+    route:
+    - destination:
+        host: web-svc
+        subset: web
+  - route:
+    - destination:
+        host: web-svc  # Uses LEAST_CONN from default policy
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: web-svc
+  namespace: emojivoto
+spec:
+  host: web-svc
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+  subsets:
+  - name: web
+    labels:
+      app: web-svc
+    trafficPolicy:
+      loadBalancer:
+        consistentHash:
+          httpHeaderName: “user-id”
