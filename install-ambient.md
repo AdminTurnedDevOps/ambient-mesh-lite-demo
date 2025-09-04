@@ -1,13 +1,14 @@
 ```
 export SOLO_LICENSE_KEY=
 ```
-# CRDs for the Kubernetes Gateway API (needed for Waypoint/L7)
+
+### CRDs for the Kubernetes Gateway API (needed for Waypoint/L7)
 ```
 export release='v1.3.0'
 kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/$release/standard-install.yaml
 ```
 
-## Gloo Operator
+### Gloo Operator
 ```
 helm install gloo-operator oci://us-docker.pkg.dev/solo-public/gloo-operator-helm/gloo-operator \
 --version 0.3.1 \
@@ -17,10 +18,13 @@ helm install gloo-operator oci://us-docker.pkg.dev/solo-public/gloo-operator-hel
 ```
 
 ## Verify Operator
+```
 kubectl get pods -n gloo-mesh
+```
 
-## ServiceMeshController CRD to automatically install Istio
-## and set the data plane to be Ambient
+### ServiceMeshController CRD
+Automatically install Istio and set the data plane to be Ambient
+```
 kubectl apply -n gloo-mesh -f -<<EOF
 apiVersion: operator.gloo.solo.io/v1
 kind: ServiceMeshController
@@ -33,7 +37,9 @@ spec:
   installNamespace: istio-system
   version: 1.27.0
 EOF
+```
 
-## Verify Istio Control and Data Plane
+### Verify Istio Control and Data Plane
+```
 kubectl get pods -n istio-system
-
+```
