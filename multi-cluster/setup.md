@@ -1,8 +1,27 @@
+The purpose of this demo is to show a few different methods/scenarios for how you'd set up Gloo Mesh in Ambient Mode.
+
+It contains:
+
+- Kubernetes Objects, which is one method for setting everything up if you don't use the Gloo Mesh Operator.
+- Istioctl for peering clusters (you can also use Helm for this).
+- Helm charts for installing Istio.
+- Meshctl for deploying the management pane and registering a worker cluster.
+
+You could use the Gloo Mesh Operator or Helm for the entire configuration, but this demo shows the "best of all worlds" so you can get a feel for various scenarios.
+
 ### Env Variables
+
+The first step is to set environment variables. These will be needed for:
+- Your Solo (Gloo Mesh) licnse key
+- Cluster contexts and names
+- Version of Istio
+- Container image keys
 
 ```
 export SOLO_LICENSE_KEY=
 ```
+
+Set the Kube Context and the cluster name
 
 ```
 export CLUSTER1=
@@ -13,6 +32,8 @@ export CLUSTER2_NAME=
 ```
 
 ```
+#export ISTIO_VERSION=1.27.0
+
 export ISTIO_VERSION=1.26.4
 export ISTIO_IMAGE=$ISTIO_VERSION-solo
 ```
@@ -30,6 +51,9 @@ export HELM_REPO=us-docker.pkg.dev/gloo-mesh/istio-helm-$REPO_KEY
 ```
 
 ### Deploy Sample App
+
+To test out the multi-cluster Gloo Mesh deployment after its up and running for things like routing, retries, timeouts, circuit breaking, and gateways, you'll need an app to test.
+
 ```
 for context in $CLUSTER1 $CLUSTER2; do
   kubectl --context $context create namespace emojivoto
@@ -39,28 +63,59 @@ done
 
 ### Kubernetes Gateway API CRDs
 
+The Kubernetes Gateway API CRDs are used for Gateway API objects as they do not come by default on Kubernetes.
+
 ```
 for context in $CLUSTER1 $CLUSTER2; do
   kubectl apply --context $context -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 done
 ```
 
-### Self-Signed Certs For Shared Root Trust (Comms Between Clusters)
+### Istioctl Install
+
+This section will install the Istioctl, which you'll use for peering clusters.
+
 ```
-for context in ${CLUSTER1} ${CLUSTER2}; do
+OS=$(uname | tr '[:upper:]' '[:lower:]' | sed -E 's/darwin/osx/')
+ARCH=$(uname -m | sed -E 's/aarch/arm/; s/x86_64/amd64/; s/armv7l/armv7/')
+echo $OS
+echo $ARCH
+
+mkdir -p ~/.istioctl/bin
+curl -sSL https://storage.googleapis.com/istio-binaries-$REPO_KEY/$ISTIO_IMAGE/istioctl-$ISTIO_IMAGE-$OS-$ARCH.tar.gz | tar xzf - -C ~/.istioctl/bin
+chmod +x ~/.istioctl/bin/istioctl
+
+export PATH=${HOME}/.istioctl/bin:${PATH}
+```
+
+### Self-Signed Certs For Shared Root Trust (Comms Between Clusters)
+
+For clusters to be able to securely communicate with each other (e.g - a management cluster to a worker cluster), certs need to be issued. In production, you'd do this through an authorized CA or a CA of your choosing like `cert-manager`.
+
+```
+curl -L https://istio.io/downloadIstio | ISTIO_VERSION=${ISTIO_VERSION} sh -
+cd istio-${ISTIO_VERSION}
+
+mkdir -p certs
+pushd certs
+make -f ../tools/certs/Makefile.selfsigned.mk root-ca
+
+function create_cacerts_secret() {
+  context=${1:?context}
+  cluster=${2:?cluster}
+  make -f ../tools/certs/Makefile.selfsigned.mk ${cluster}-cacerts
   kubectl --context=${context} create ns istio-system || true
-  kubectl --context=${context} create ns istio-gateways || true
-done
-kubectl --context=${CLUSTER1} create secret generic cacerts -n istio-system \
---from-file=./certs/cluster1/ca-cert.pem \
---from-file=./certs/cluster1/ca-key.pem \
---from-file=./certs/cluster1/root-cert.pem \
---from-file=./certs/cluster1/cert-chain.pem
-kubectl --context=${CLUSTER2} create secret generic cacerts -n istio-system \
---from-file=./certs/cluster2/ca-cert.pem \
---from-file=./certs/cluster2/ca-key.pem \
---from-file=./certs/cluster2/root-cert.pem \
---from-file=./certs/cluster2/cert-chain.pem
+  kubectl --context=${context} create secret generic cacerts -n istio-system \
+    --from-file=${cluster}/ca-cert.pem \
+    --from-file=${cluster}/ca-key.pem \
+    --from-file=${cluster}/root-cert.pem \
+    --from-file=${cluster}/cert-chain.pem
+}
+
+create_cacerts_secret ${CLUSTER1} ${CLUSTER1_NAME}
+create_cacerts_secret ${CLUSTER2} ${CLUSTER2_NAME}
+
+cd ../..
 ```
 
 ### Istio CRDs and Control Plane (Istiod)
@@ -169,6 +224,9 @@ EOF
 ```
 
 ## Istio CNI
+
+With Ambient Mesh, the Istio CNI is used to redirect all incoming and outgoing Pod traffic to Ztunnel (which is deployed as a DaemonSet).
+
 ```
 for context in $CLUSTER1 $CLUSTER2; do
   helm upgrade --install istio-cni oci://$HELM_REPO/cni \
@@ -195,6 +253,9 @@ done
 ```
 
 ## Install Ztunnel
+
+Ztunnel (outside of the Istio CNI providing the traffic management for incoming/outgoing requests) provides everything at the Layer 4 level. A good example of what happens at L4 is mTLS.
+
 ```
 helm upgrade --install ztunnel oci://$HELM_REPO/ztunnel \
 --namespace istio-system \
@@ -255,7 +316,18 @@ variant: distroless
 EOF
 ```
 
-## Deploy Gateways - ONLY IF YOU DO NOT USE EXPOSE
+### Label Clusters
+Label clusters for the metadata that is needed to ensure the clusters can communicate.
+
+```
+kubectl label namespace istio-system --context ${CLUSTER1} topology.istio.io/network=${CLUSTER1_NAME}
+kubectl label namespace istio-system --context ${CLUSTER2} topology.istio.io/network=${CLUSTER2_NAME}
+```
+
+### Deploy Gateways
+
+PLEASE SKIP if you will be using the following step, which is peering the clusters with `istioctl multicluster expose`. The `expose` command and the Gateway objects are doing the same thing (the `expose` command creates the Gateways)
+
 ```
 for context in $CLUSTER1 $CLUSTER2; do
   kubectl create namespace --context $context istio-gateways
@@ -310,60 +382,46 @@ spec:
 EOF
 ```
 
-## Label Clusters
-Label clusters for the metadata that is needed to ensure the clusters can communicate. This is going to be the Namespace where the east/west gateways are.
-
-```
-kubectl label namespace istio-system topology.istio.io/network=$CLUSTER1_NAME --context=$CLUSTER1
-kubectl label namespace istio-system topology.istio.io/network=$CLUSTER2_NAME --context=$CLUSTER2
-```
-
-
-```
-kubectl annotate gateway istio-eastwest -n istio-gateways gateway.istio.io/service-account=istio-eastwest --context=$CLUSTER1
-kubectl annotate gateway istio-eastwest -n istio-gateways gateway.istio.io/service-account=istio-eastwest --context=$CLUSTER2
-
-kubectl annotate gateway istio-eastwest -n istio-gateways gateway.istio.io/trust-domain=$CLUSTER2 --context=$CLUSTER1
-kubectl annotate gateway istio-eastwest -n istio-gateways gateway.istio.io/trust-domain=$CLUSTER1 --context=$CLUSTER2
-
-kubectl label svc istio-eastwest -n istio-gateways istio=eastwestgateway --context=$CLUSTER1
-kubectl label svc istio-eastwest -n istio-gateways istio=eastwestgateway --context=$CLUSTER2
-```
-
-```
-kubectl get namespace istio-gateways -o jsonpath='{.metadata.annotations}'
-```
-
 ## Peer Clusters
-Please note that the `expose` command is not needed (which is why you only see the link command) as the Gateway configuration we did above does the same thing that the `expose` command does.
 
 ```
-# The below istioctl implementation is specifically for 1.26.
+kubectl create namespace istio-eastwest --context=$CLUSTER1
+kubectl create namespace istio-eastwest --context=$CLUSTER2
 
-OS=$(uname | tr '[:upper:]' '[:lower:]' | sed -E 's/darwin/osx/')
-ARCH=$(uname -m | sed -E 's/aarch/arm/; s/x86_64/amd64/; s/armv7l/armv7/')
-echo $OS
-echo $ARCH
+istioctl --context=${CLUSTER1} multicluster expose -n istio-eastwest
+istioctl --context=${CLUSTER2} multicluster expose -n istio-eastwest
 
-mkdir -p ~/.istioctl/bin
-curl -sSL https://storage.googleapis.com/istio-binaries-$REPO_KEY/$ISTIO_IMAGE/istioctl-$ISTIO_IMAGE-$OS-$ARCH.tar.gz | tar xzf - -C ~/.istioctl/bin
-chmod +x ~/.istioctl/bin/istioctl
-
-export PATH=${HOME}/.istioctl/bin:${PATH}
-
-istioctl --context=${CLUSTER1} multicluster expose -n istio-gateways
-istioctl --context=${CLUSTER2} multicluster expose -n istio-gateways
-
-istioctl multicluster link --contexts=$CLUSTER1,$CLUSTER2 -n istio-gateways
+SIDENOTE: You may have to wait a minute or two for the next step as the cloud LBs need to be provisioned first.
+istioctl multicluster link --namespace istio-eastwest --contexts=$CLUSTER1,$CLUSTER2
 ```
 
 for context in ${CLUSTER1} ${CLUSTER2}; do
-  kubectl get gateways -n istio-gateways --context ${context}
+  kubectl get gateways -n istio-eastwest --context ${context}
 done
 
-## For Multicluster Management Pane
+### For Multicluster Management Pane
 ```
 meshctl install --profiles gloo-mesh-mgmt \
---set common.cluster=$CLUSTER1 \
+--kubecontext $CLUSTER1 \
+--set common.cluster=$CLUSTER1_NAME \
 --set licensing.glooMeshCoreLicenseKey=$SOLO_LICENSE_KEY
+```
+
+### Register
+
+When you set up a multi-cluster environment, you'll have a "management cluster" that runs the pane/UI and "worker clusters" that are running your workloads. This step shows you how to register a cluster.
+
+```
+export TELEMETRY_GATEWAY_IP=$(kubectl get svc -n gloo-mesh gloo-telemetry-gateway --context $CLUSTER1 -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
+export TELEMETRY_GATEWAY_PORT=$(kubectl get svc -n gloo-mesh gloo-telemetry-gateway --context $CLUSTER1 -o jsonpath='{.spec.ports[?(@.name=="otlp")].port}')
+export TELEMETRY_GATEWAY_ADDRESS=${TELEMETRY_GATEWAY_IP}:${TELEMETRY_GATEWAY_PORT}
+echo $TELEMETRY_GATEWAY_ADDRESS
+```
+
+```
+meshctl cluster register $CLUSTER2_NAME \
+  --kubecontext $CLUSTER1 \
+  --profiles gloo-mesh-agent \
+  --remote-context $CLUSTER2 \
+  --telemetry-server-address $TELEMETRY_GATEWAY_ADDRESS
 ```
