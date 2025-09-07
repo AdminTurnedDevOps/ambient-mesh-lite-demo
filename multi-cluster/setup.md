@@ -67,7 +67,7 @@ The Kubernetes Gateway API CRDs are used for Gateway API objects as they do not 
 
 ```
 for context in $CLUSTER1 $CLUSTER2; do
-  kubectl apply --context $context -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+  kubectl apply --context $context -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
 done
 ```
 
