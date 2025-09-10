@@ -18,7 +18,13 @@ variable "node_count" {
   default = 3
 }
 
-  variable "k8s_version" {
-    type = string
-    default = "1.32.6"
-  }
+variable "k8s_version" {
+  type = string
+  default = "1.32.6"
+}
+
+variable "subscription_id" {
+  type = string
+  description = "Azure subscription ID"
+  default = ""
+}
