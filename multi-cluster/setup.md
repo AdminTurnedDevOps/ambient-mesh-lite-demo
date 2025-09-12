@@ -1,27 +1,8 @@
-The purpose of this demo is to show a few different methods/scenarios for how you'd set up Gloo Mesh in Ambient Mode.
-
-It contains:
-
-- Kubernetes Objects, which is one method for setting everything up if you don't use the Gloo Mesh Operator.
-- Istioctl for peering clusters (you can also use Helm for this).
-- Helm charts for installing Istio.
-- Meshctl for deploying the management pane and registering a worker cluster.
-
-You could use the Gloo Mesh Operator or Helm for the entire configuration, but this demo shows the "best of all worlds" so you can get a feel for various scenarios.
-
 ### Env Variables
-
-The first step is to set environment variables. These will be needed for:
-- Your Solo (Gloo Mesh) licnse key
-- Cluster contexts and names
-- Version of Istio
-- Container image keys
 
 ```
 export SOLO_LICENSE_KEY=
 ```
-
-Set the Kube Context and the cluster name
 
 ```
 export CLUSTER1=
@@ -50,31 +31,14 @@ export REPO=us-docker.pkg.dev/gloo-mesh/istio-$REPO_KEY
 export HELM_REPO=us-docker.pkg.dev/gloo-mesh/istio-helm-$REPO_KEY
 ```
 
-### Deploy Sample App
-
-To test out the multi-cluster Gloo Mesh deployment after its up and running for things like routing, retries, timeouts, circuit breaking, and gateways, you'll need an app to test.
-
-```
-for context in $CLUSTER1 $CLUSTER2; do
-  kubectl --context $context create namespace emojivoto
-  kubectl --context $context -n emojivoto apply -k kubernetes-sample-apps/emojivoto-example/kustomize/
-done
-```
-
 ### Kubernetes Gateway API CRDs
 
-The Kubernetes Gateway API CRDs are used for Gateway API objects as they do not come by default on Kubernetes.
-
 ```
-for context in $CLUSTER1 $CLUSTER2; do
-  kubectl apply --context $context -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
-done
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml --context=$CLUSTER1
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml --context=$CLUSTER2
 ```
 
 ### Istioctl Install
-
-This section will install the Istioctl, which you'll use for peering clusters.
-
 ```
 OS=$(uname | tr '[:upper:]' '[:lower:]' | sed -E 's/darwin/osx/')
 ARCH=$(uname -m | sed -E 's/aarch/arm/; s/x86_64/amd64/; s/armv7l/armv7/')
@@ -89,9 +53,6 @@ export PATH=${HOME}/.istioctl/bin:${PATH}
 ```
 
 ### Self-Signed Certs For Shared Root Trust (Comms Between Clusters)
-
-For clusters to be able to securely communicate with each other (e.g - a management cluster to a worker cluster), certs need to be issued. In production, you'd do this through an authorized CA or a CA of your choosing like `cert-manager`.
-
 ```
 curl -L https://istio.io/downloadIstio | ISTIO_VERSION=${ISTIO_VERSION} sh -
 cd istio-${ISTIO_VERSION}
@@ -224,9 +185,6 @@ EOF
 ```
 
 ## Istio CNI
-
-With Ambient Mesh, the Istio CNI is used to redirect all incoming and outgoing Pod traffic to Ztunnel (which is deployed as a DaemonSet).
-
 ```
 for context in $CLUSTER1 $CLUSTER2; do
   helm upgrade --install istio-cni oci://$HELM_REPO/cni \
@@ -253,9 +211,6 @@ done
 ```
 
 ## Install Ztunnel
-
-Ztunnel (outside of the Istio CNI providing the traffic management for incoming/outgoing requests) provides everything at the Layer 4 level. A good example of what happens at L4 is mTLS.
-
 ```
 helm upgrade --install ztunnel oci://$HELM_REPO/ztunnel \
 --namespace istio-system \
@@ -316,73 +271,16 @@ variant: distroless
 EOF
 ```
 
-### Label Clusters
-Label clusters for the metadata that is needed to ensure the clusters can communicate.
+## Label Clusters
+Label clusters for the metadata that is needed to ensure the clusters can communicate. The ambient control plane uses this label internally to group pods that exist in the same L3 network.
 
 ```
 kubectl label namespace istio-system --context ${CLUSTER1} topology.istio.io/network=${CLUSTER1_NAME}
 kubectl label namespace istio-system --context ${CLUSTER2} topology.istio.io/network=${CLUSTER2_NAME}
 ```
 
-### Deploy Gateways
-
-PLEASE SKIP if you will be using the following step, which is peering the clusters with `istioctl multicluster expose`. The `expose` command and the Gateway objects are doing the same thing (the `expose` command creates the Gateways)
-
-```
-for context in $CLUSTER1 $CLUSTER2; do
-  kubectl create namespace --context $context istio-gateways
-done
-
-kubectl apply --context $CLUSTER1 -f- <<EOF
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  labels:
-    istio.io/expose-istiod: "15012"
-    topology.istio.io/network: $CLUSTER1_NAME
-  name: istio-eastwest
-  namespace: istio-gateways
-spec:
-  gatewayClassName: istio-eastwest
-  listeners:
-  - name: cross-network
-    port: 15008
-    protocol: HBONE
-    tls:
-      mode: Passthrough
-  - name: xds-tls
-    port: 15012
-    protocol: TLS
-    tls:
-      mode: Passthrough
-EOF
-
-kubectl apply --context $CLUSTER2 -f- <<EOF
-apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  labels:
-    istio.io/expose-istiod: "15012"
-    topology.istio.io/network: $CLUSTER2_NAME
-  name: istio-eastwest
-  namespace: istio-gateways
-spec:
-  gatewayClassName: istio-eastwest
-  listeners:
-  - name: cross-network
-    port: 15008
-    protocol: HBONE
-    tls:
-      mode: Passthrough
-  - name: xds-tls
-    port: 15012
-    protocol: TLS
-    tls:
-      mode: Passthrough
-EOF
-```
-
 ## Peer Clusters
+Please note that the `expose` command is not needed (which is why you only see the link command) as the Gateway configuration we did above does the same thing that the `expose` command does.
 
 ```
 kubectl create namespace istio-eastwest --context=$CLUSTER1
@@ -399,7 +297,7 @@ for context in ${CLUSTER1} ${CLUSTER2}; do
   kubectl get gateways -n istio-eastwest --context ${context}
 done
 
-### For Multicluster Management Pane
+## For Multicluster Management Pane
 ```
 meshctl install --profiles gloo-mesh-mgmt \
 --kubecontext $CLUSTER1 \
@@ -407,9 +305,7 @@ meshctl install --profiles gloo-mesh-mgmt \
 --set licensing.glooMeshCoreLicenseKey=$SOLO_LICENSE_KEY
 ```
 
-### Register
-
-When you set up a multi-cluster environment, you'll have a "management cluster" that runs the pane/UI and "worker clusters" that are running your workloads. This step shows you how to register a cluster.
+## Register
 
 ```
 export TELEMETRY_GATEWAY_IP=$(kubectl get svc -n gloo-mesh gloo-telemetry-gateway --context $CLUSTER1 -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
