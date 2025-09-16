@@ -24,3 +24,7 @@ spec:
       baseEjectionTime: 30s
 EOF
 ```
+
+```
+kubectl get destinationrule -n microapp -o yaml
+```
