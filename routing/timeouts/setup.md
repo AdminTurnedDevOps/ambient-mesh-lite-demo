@@ -1,6 +1,7 @@
 Timeouts give you the ability to say "give on on trying to request this service after X amount of time". It helps in the situation where a service may be down and someone is constantly trying to reach out, timeouts would help in requests hanging forever.
 
 ```
+kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
