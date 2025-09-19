@@ -3,7 +3,7 @@ project_id = "field-engineering-us"
 
 # Cluster Configuration
 region       = "us-central1"
-cluster_name = "worker01"
+cluster_name = "workerclus01"
 
 # Node Pool Configuration
 node_count      = 3

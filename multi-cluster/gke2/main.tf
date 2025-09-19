@@ -68,7 +68,7 @@ resource "google_container_node_pool" "primary_nodes" {
 }
 
 resource "google_service_account" "default" {
-  account_id   = "${var.cluster_name}-sa1"
+  account_id   = "${var.cluster_name}-sa3"
   display_name = "Service Account for GKE cluster"
 }
 
