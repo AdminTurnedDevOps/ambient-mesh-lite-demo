@@ -6,7 +6,6 @@ export CLUSTER1_NAME=
 export CLUSTER2_NAME=
 ```
 
-```
 ### Deploy Sample App
 ```
 kubectl create ns microapp --context=$CLUSTER1
@@ -20,7 +19,7 @@ kubectl apply -f multicluster/sampleapp-microdemo/microservices-demo/release/kub
 kubectl get pods -n microapp
 ```
 
-Label Namespaces for Ambient Mode.
+### Label Namespaces for Ambient Mode.
 ```
 kubectl label namespace microapp istio.io/dataplane-mode=ambient --context=$CLUSTER1
 kubectl label namespace microapp istio.io/dataplane-mode=ambient --context=$CLUSTER2
@@ -29,7 +28,7 @@ kubectl label namespace microapp istio.io/dataplane-mode=ambient --context=$CLUS
 kubectl label namespace gloo-system istio.io/dataplane-mode=ambient --context=$CLUSTER1
 kubectl label namespace gloo-system istio.io/dataplane-mode=ambient --context=$CLUSTER2
 
-Make services available across clusters link 
+### Make services available across clusters link 
 ```
 kubectl --context $CLUSTER1 -n microapp label service frontend solo.io/service-scope=global --overwrite
 kubectl --context $CLUSTER2 -n microapp label service frontend solo.io/service-scope=global --overwrite
