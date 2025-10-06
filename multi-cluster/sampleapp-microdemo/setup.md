@@ -26,9 +26,6 @@ kubectl label namespace microapp istio.io/dataplane-mode=ambient --context=$CLUS
 kubectl label namespace microapp istio.io/dataplane-mode=ambient --context=$CLUSTER2
 ```
 
-kubectl label namespace gloo-system istio.io/dataplane-mode=ambient --context=$CLUSTER1
-kubectl label namespace gloo-system istio.io/dataplane-mode=ambient --context=$CLUSTER2
-
 ### Make services available across clusters link 
 ```
 kubectl --context $CLUSTER1 -n microapp label service frontend solo.io/service-scope=global --overwrite
