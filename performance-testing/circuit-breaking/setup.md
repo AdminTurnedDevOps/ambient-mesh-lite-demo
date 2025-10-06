@@ -1,6 +1,6 @@
 Circuit Breaking temporarily stops requests to a failing or overloaded service, which helps in preventing cascading failures. It helps in reducing infinite loops.
 
-The host would be either your backend service or the `name` within your `BackendRef` for multi-cluster routing
+The host would be either your backend service or the `name` within your `BackendRef` for multi-cluster routing.
 
 ```
 kubectl apply -f - <<EOF
