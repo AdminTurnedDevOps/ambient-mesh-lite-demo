@@ -13,6 +13,49 @@ helm install kube-prometheus -n monitoring prometheus-community/kube-prometheus-
 ```
 
 ```
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod
+  namespace: monitoring
+  labels:
+    release: kube-prometheus  # Required for Prometheus to discover this ServiceMonitor
+spec:
+  selector:
+    matchLabels:
+      app: istiod
+  namespaceSelector:
+    matchNames:
+      - istio-system
+  endpoints:
+  - port: http-monitoring
+    interval: 30s
+    path: /metrics
+EOF
+```
+
+```
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ztunnel
+  namespace: monitoring
+  labels:
+    release: kube-prometheus  # Required for Prometheus to discover this PodMonitor
+spec:
+  selector:
+    matchLabels:
+      app: ztunnel
+  namespaceSelector:
+    matchNames:
+      - istio-system
+  podMetricsEndpoints:
+  - port: ztunnel-stats
+    interval: 30s
+    path: /stats/prometheus
+EOF
 ```
 
 ```
