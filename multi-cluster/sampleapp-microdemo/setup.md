@@ -11,8 +11,8 @@ export CLUSTER2_NAME=
 kubectl create ns microapp --context=$CLUSTER1
 kubectl create ns microapp --context=$CLUSTER2
 
-kubectl apply -f multicluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER1
-kubectl apply -f multicluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER2
+kubectl apply -f multi-cluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER1
+kubectl apply -f multi-cluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER2
 ```
 
 ```
