@@ -16,7 +16,8 @@ kubectl apply -f multi-cluster/sampleapp-microdemo/microservices-demo/release/ku
 ```
 
 ```
-kubectl get pods -n microapp
+kubectl get pods -n microapp --context=$CLUSTER1
+kubectl get pods -n microapp --context=$CLUSTER2
 ```
 
 ### Label Namespaces for Ambient Mode.
