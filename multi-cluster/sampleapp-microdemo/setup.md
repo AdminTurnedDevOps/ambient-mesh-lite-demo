@@ -32,6 +32,7 @@ kubectl --context $CLUSTER1 -n microapp label service frontend solo.io/service-s
 kubectl --context $CLUSTER2 -n microapp label service frontend solo.io/service-scope=global --overwrite
 ```
 
+### Get service entries to see if apps are discoverable across clusters and can route traffic across clusters
 ```
 for context in $CLUSTER1 $CLUSTER2; do
   echo "Service entries and workload entries for cluster $context:"
@@ -40,6 +41,14 @@ for context in $CLUSTER1 $CLUSTER2; do
   kubectl get workloadentry --context $context -n istio-system
   echo ""
 done
+```
+
+### Create Gateway and HTTPRoute for multi-cluster routing
+
+Confirm that you have an Istio Gateway Class acorss clusters. If you're using Gloo Gateway, the gateway class will need to be available on both clusters as well.
+```
+kubectl get gatewayclass --context=$CLUSTER1
+kubectl get gatewayclass --context=$CLUSTER2
 ```
 
 ```
@@ -77,9 +86,23 @@ spec:
 EOF
 ```
 
+### See App and Scale
+
+Grab the public IP and try to reach your app via a browser.
+```
+kubectl get gateway -n microapp
+```
+
+Scale the app down on cluster 1 to confirm failover occurs.
 ```
 kubectl scale deploy  -n microapp frontend --replicas=0 --context $CLUSTER1
 ```
+
+Scale back up for multi-cluster HA.
+```
+kubectl scale deploy  -n microapp frontend --replicas=1 --context $CLUSTER1
+```
+
 
 
 
