@@ -70,6 +70,10 @@ To log into Grafana:
 1. Username: admin
 2. Password: prom-operator
 
+Add Istiod and Ztunnel dashboards via the import button.
+- For Istiod (the ID): 7645
+- For Ztunnel (the ID): 21306
+
 ## Kiali Installation
 
 Add Kiali Helm repository:
