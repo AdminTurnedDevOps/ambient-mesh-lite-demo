@@ -79,6 +79,14 @@ spec:
 EOF
 ```
 
+```
+kubectl scale deploy  -n microapp frontend --replicas=0 --context $CLUSTER1
+```
+
+
+
+
+
 If you'd like a Waypoint:
 ```
 kubectl apply -f - <<EOF
