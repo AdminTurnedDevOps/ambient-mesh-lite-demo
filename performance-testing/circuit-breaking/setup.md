@@ -1,7 +1,6 @@
 Circuit Breaking temporarily stops requests to a failing or overloaded service, which helps in preventing cascading failures. It helps in reducing infinite loops.
 
 ```
-kubectl apply -f - <<EOF
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:

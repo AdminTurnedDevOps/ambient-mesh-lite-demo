@@ -32,9 +32,6 @@ kubectl label namespace gloo-system istio.io/dataplane-mode=ambient --context=$C
 ```
 kubectl --context $CLUSTER1 -n microapp label service frontend solo.io/service-scope=global --overwrite
 kubectl --context $CLUSTER2 -n microapp label service frontend solo.io/service-scope=global --overwrite
-
-kubectl --context $CLUSTER1 -n microapp annotate service frontend networking.istio.io/traffic-distribution=Any --overwrite
-kubectl --context $CLUSTER2 -n microapp annotate service frontend networking.istio.io/traffic-distribution=Any --overwrite
 ```
 
 ```
