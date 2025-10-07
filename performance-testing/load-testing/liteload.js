@@ -9,10 +9,10 @@ const requestDuration = new Trend('request_duration');
 
 export const options = {
   stages: [
-    { duration: '1m', target: 50 },   // Ramp up to 50 users over 1 minute
-    { duration: '5m', target: 50 },   // Stay at 50 users for 5 minutes (steady state - when you'll trigger failures)
-    { duration: '1m', target: 100 },  // Spike to 100 users for 1 minute (optional - to test under higher load)
-    { duration: '3m', target: 100 },  // Maintain 100 users (when you can test recovery)
+    { duration: '1m', target: 100 },   // Ramp up to 100 users over 1 minute
+    { duration: '2m', target: 100 },   // Stay at 100 users for 5 minutes (steady state - when you'll trigger failures)
+    { duration: '4m', target: 300 },  // Spike to 500 users for 1 minute (optional - to test under higher load)
+    { duration: '2m', target: 100 },  // Maintain 100 users (when you can test recovery)
     { duration: '1m', target: 0 },    // Ramp down to 0 users
   ],
   thresholds: {
