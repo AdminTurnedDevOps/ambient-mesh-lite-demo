@@ -49,7 +49,7 @@ let lastFailureTime = 0;
 let isInFailureState = false;
 
 export default function () {
-  const baseUrl = 'http://34.139.159.214';
+  const baseUrl = 'http://34.23.86.111/';
   const testId = exec.scenario.name;
   
   // Different endpoints to test various failure modes based on Online Boutique app
