@@ -11,12 +11,13 @@ export CLUSTER2_NAME=
 kubectl create ns microapp --context=$CLUSTER1
 kubectl create ns microapp --context=$CLUSTER2
 
-kubectl apply -f multicluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER1
-kubectl apply -f multicluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER2
+kubectl apply -f multi-cluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER1
+kubectl apply -f multi-cluster/sampleapp-microdemo/microservices-demo/release/kubernetes-manifests.yaml -n microapp --context=$CLUSTER2
 ```
 
 ```
-kubectl get pods -n microapp
+kubectl get pods -n microapp --context=$CLUSTER1
+kubectl get pods -n microapp --context=$CLUSTER2
 ```
 
 ### Label Namespaces for Ambient Mode.
@@ -25,18 +26,13 @@ kubectl label namespace microapp istio.io/dataplane-mode=ambient --context=$CLUS
 kubectl label namespace microapp istio.io/dataplane-mode=ambient --context=$CLUSTER2
 ```
 
-kubectl label namespace gloo-system istio.io/dataplane-mode=ambient --context=$CLUSTER1
-kubectl label namespace gloo-system istio.io/dataplane-mode=ambient --context=$CLUSTER2
-
 ### Make services available across clusters link 
 ```
 kubectl --context $CLUSTER1 -n microapp label service frontend solo.io/service-scope=global --overwrite
 kubectl --context $CLUSTER2 -n microapp label service frontend solo.io/service-scope=global --overwrite
-
-kubectl --context $CLUSTER1 -n microapp annotate service frontend networking.istio.io/traffic-distribution=Any --overwrite
-kubectl --context $CLUSTER2 -n microapp annotate service frontend networking.istio.io/traffic-distribution=Any --overwrite
 ```
 
+### Get service entries to see if apps are discoverable across clusters and can route traffic across clusters
 ```
 for context in $CLUSTER1 $CLUSTER2; do
   echo "Service entries and workload entries for cluster $context:"
@@ -45,6 +41,14 @@ for context in $CLUSTER1 $CLUSTER2; do
   kubectl get workloadentry --context $context -n istio-system
   echo ""
 done
+```
+
+### Create Gateway and HTTPRoute for multi-cluster routing
+
+Confirm that you have an Istio Gateway Class acorss clusters. If you're using Gloo Gateway, the gateway class will need to be available on both clusters as well.
+```
+kubectl get gatewayclass --context=$CLUSTER1
+kubectl get gatewayclass --context=$CLUSTER2
 ```
 
 ```
@@ -81,6 +85,28 @@ spec:
       port: 80
 EOF
 ```
+
+### See App and Scale
+
+Grab the public IP and try to reach your app via a browser.
+```
+kubectl get gateway -n microapp
+```
+
+Scale the app down on cluster 1 to confirm failover occurs.
+```
+kubectl scale deploy  -n microapp frontend --replicas=0 --context $CLUSTER1
+```
+
+Scale back up for multi-cluster HA.
+```
+kubectl scale deploy  -n microapp frontend --replicas=1 --context $CLUSTER1
+```
+
+
+
+
+
 
 If you'd like a Waypoint:
 ```

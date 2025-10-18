@@ -6,7 +6,7 @@ region       = "us-east1"
 cluster_name = "mgmtclus01"
 
 # Node Pool Configuration
-node_count      = 3
+node_count      = 1
 machine_type    = "e2-highcpu-8"
 min_node_count  = 1
 max_node_count  = 3

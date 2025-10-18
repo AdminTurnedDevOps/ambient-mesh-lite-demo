@@ -34,8 +34,8 @@ export HELM_REPO=us-docker.pkg.dev/gloo-mesh/istio-helm-$REPO_KEY
 ### Kubernetes Gateway API CRDs
 
 ```
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml --context=$CLUSTER1
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml --context=$CLUSTER2
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml --context=$CLUSTER1
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml --context=$CLUSTER2
 ```
 
 ### Istioctl Install
@@ -320,4 +320,10 @@ meshctl cluster register $CLUSTER2_NAME \
   --profiles gloo-mesh-agent \
   --remote-context $CLUSTER2 \
   --telemetry-server-address $TELEMETRY_GATEWAY_ADDRESS
+```
+
+## UI
+
+```
+kubectl port-forward svc/gloo-mesh-ui -n gloo-mesh 8080:8090
 ```
