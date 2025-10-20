@@ -1,7 +1,7 @@
 Specify an Istio version for the installation of the helm charts
 
 ```
-export ISTIO_VERSION=1.26.4
+export ISTIO_VERSION=1.27.2
 ```
 
 2. Install the ArgoCD CLI so you can deploy apps locally

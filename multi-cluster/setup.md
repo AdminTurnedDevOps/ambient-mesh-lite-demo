@@ -13,9 +13,7 @@ export CLUSTER2_NAME=
 ```
 
 ```
-#export ISTIO_VERSION=1.27.0
-
-export ISTIO_VERSION=1.26.4
+export ISTIO_VERSION=1.27.2
 export ISTIO_IMAGE=$ISTIO_VERSION-solo
 ```
 
