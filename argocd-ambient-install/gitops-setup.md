@@ -106,6 +106,10 @@ EOF
 ```
 
 10. Install the Istio CNI (used to route traffic to Ztunnel)
+
+You'll see the `cniBinary` flag in the config below.
+
+GKE uses Container-Optimized OS (COS) which has `/opt/cni/bin` as a read-only filesystem. Standard Kubernetes (and other managed options like AKS) use `/opt/cni/bin` as a writable location, but GKE requires CNI binaries to be installed in /home/kubernetes/bin instead.
 ```
 kubectl apply -f- <<EOF
 apiVersion: argoproj.io/v1alpha1
@@ -125,6 +129,8 @@ spec:
     helm:
       values: |
         profile: ambient
+        cni:
+          cniBinDir: /home/kubernetes/bin
   syncPolicy:
     automated:
       prune: true
@@ -149,6 +155,10 @@ spec:
     chart: ztunnel
     repoURL: https://istio-release.storage.googleapis.com/charts
     targetRevision: ${ISTIO_VERSION}
+    helm:
+      values: |
+        global:
+          platform: gke
   syncPolicy:
     automated:
       prune: true
@@ -160,4 +170,34 @@ EOF
 Confirm that the core components of Ambient Mesh are operational
 ```
 kubectl logs -n istio-system -l app=ztunnel
+```
+
+## GKE Users
+If you're using GKE and you notice that the Ztunnel/Istio CNI Pods aren't starting, you may see this error in the DaemonSet:
+
+```
+Error creating: insufficient quota to match these scopes: [{PriorityClass In [system-node-critical system-cluster-critical]}]
+```
+
+The reason why is because GKE has stricter default quota enforcement for Pods using the `system-critical` priority class. Because of that, a `ResourceQuota` needs to be created.
+
+
+```
+kubectl apply -f- <<EOF
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: system-critical-quota
+  namespace: istio-system
+spec:
+  hard:
+    pods: "100"
+  scopeSelector:
+    matchExpressions:
+    - operator: In
+      scopeName: PriorityClass
+      values:
+      - system-node-critical
+      - system-cluster-critical
+EOF
 ```

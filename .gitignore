@@ -3,11 +3,8 @@
 .*terraform.tfstate.lock.info
 *terraform.tfstate
 *terraform.tfstate.backup
+*terraform.tfvars
 
 *istio-*
 
-<<<<<<< HEAD
 *values.env*
-=======
-*values.env
->>>>>>> f31bdd0bd568ceceaa14da788a4e1d6562b5b721

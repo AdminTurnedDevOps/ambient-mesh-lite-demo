@@ -31,7 +31,7 @@ metadata:
   name: websvc-gateway
   namespace: emojivoto
 spec:
-  gatewayClassName: istio
+  gatewayClassName: kgateway
   listeners:
   - name: web-svc
     port: 80
